@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reloj digital y analógico con alarmas, cronómetro y temporizador. HTML, CSS y JavaScript puros.">
+  <meta name="theme-color" content="#080b11">
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="%23141b26" stroke="%23f5a524" stroke-width="7"/><path d="M50 27v25l17 10" stroke="%23f5a524" stroke-width="8" stroke-linecap="round" fill="none"/></svg>'>
+  <title>Reloj · Alarmas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== Cabecera ===== -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.5"/>
+            <path d="M12 7v5l3.5 2"/>
+          </svg>
+        </span>
+        <span class="brand-name">Reloj<span class="brand-acento">.js</span></span>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Secciones de la aplicación">
+        <button class="tab is-active" role="tab" id="tab-reloj" data-tab="reloj" aria-controls="panel-reloj" aria-selected="true">Reloj</button>
+        <button class="tab" role="tab" id="tab-alarmas" data-tab="alarmas" aria-controls="panel-alarmas" aria-selected="false" tabindex="-1">Alarmas</button>
+        <button class="tab" role="tab" id="tab-cronometro" data-tab="cronometro" aria-controls="panel-cronometro" aria-selected="false" tabindex="-1">Cronómetro</button>
+        <button class="tab" role="tab" id="tab-temporizador" data-tab="temporizador" aria-controls="panel-temporizador" aria-selected="false" tabindex="-1">Temporizador</button>
+      </nav>
+
+      <button class="icon-btn btn-tema" id="btn-tema" aria-label="Cambiar tema" title="Cambiar tema">
+        <svg class="icono-sol" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4.5"/>
+          <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>
+        </svg>
+        <svg class="icono-luna" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/>
+        </svg>
+      </button>
+    </header>
+
+    <main>
+
+      <!-- ===== Panel: Reloj ===== -->
+      <section class="panel" id="panel-reloj" role="tabpanel" aria-labelledby="tab-reloj">
+        <div class="reloj-grid">
+          <div class="card tarjeta-analogico">
+            <svg class="analogico" viewBox="0 0 200 200" role="img" aria-label="Reloj analógico con la hora actual">
+              <defs>
+                <radialGradient id="esfera" cx="35%" cy="30%" r="80%">
+                  <stop class="esfera-clara" offset="0%"/>
+                  <stop class="esfera-oscura" offset="100%"/>
+                </radialGradient>
+              </defs>
+              <circle class="esfera" cx="100" cy="100" r="95" fill="url(#esfera)"/>
+              <g id="marcas"></g>
+              <g id="numeros"></g>
+              <line id="mano-hora" class="mano mano-hora" x1="100" y1="100" x2="100" y2="56"/>
+              <line id="mano-minuto" class="mano mano-minuto" x1="100" y1="100" x2="100" y2="38"/>
+              <line id="mano-segundo" class="mano mano-segundo" x1="100" y1="112" x2="100" y2="30"/>
+              <circle class="eje" cx="100" cy="100" r="4.5"/>
+            </svg>
+          </div>
+
+          <div class="card tarjeta-digital">
+            <p class="sobretitulo">Hora local</p>
+            <div class="digital" id="reloj-digital">
+              <span id="reloj-hm">--:--</span><span id="reloj-s" class="digital-segundos">:--</span><span id="reloj-sufijo" class="digital-sufijo" hidden></span>
+            </div>
+            <p class="fecha" id="fecha">—</p>
+            <div class="reloj-acciones">
+              <button class="btn btn-ghost" id="btn-formato">Formato 24 h</button>
+              <span class="proxima" id="proxima-alarma">Sin alarmas activas</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Panel: Alarmas ===== -->
+      <section class="panel" id="panel-alarmas" role="tabpanel" aria-labelledby="tab-alarmas" hidden>
+        <div class="cabecera-panel">
+          <div>
+            <h1>Alarmas</h1>
+            <p class="muted">Se guardan en este navegador. El aviso no funciona con la pestaña cerrada.</p>
+          </div>
+          <button class="btn btn-ghost" id="btn-notificaciones" hidden>Activar notificaciones</button>
+        </div>
+
+        <div class="layout-alarmas">
+          <form class="card formulario-alarma" id="form-alarma" novalidate>
+            <h2 id="form-titulo">Nueva alarma</h2>
+
+            <div class="campo">
+              <label for="alarma-hora">Hora</label>
+              <input type="time" id="alarma-hora" name="hora" required value="07:00">
+            </div>
+
+            <div class="campo">
+              <label for="alarma-nombre">Etiqueta (opcional)</label>
+              <input type="text" id="alarma-nombre" name="nombre" maxlength="40" placeholder="Despertar, reunión, pastilla…" autocomplete="off">
+            </div>
+
+            <fieldset class="campo">
+              <legend>Repetir</legend>
+              <div class="dias">
+                <label class="dia" title="Lunes"><input type="checkbox" value="1"><span>L</span></label>
+                <label class="dia" title="Martes"><input type="checkbox" value="2"><span>M</span></label>
+                <label class="dia" title="Miércoles"><input type="checkbox" value="3"><span>X</span></label>
+                <label class="dia" title="Jueves"><input type="checkbox" value="4"><span>J</span></label>
+                <label class="dia" title="Viernes"><input type="checkbox" value="5"><span>V</span></label>
+                <label class="dia" title="Sábado"><input type="checkbox" value="6"><span>S</span></label>
+                <label class="dia" title="Domingo"><input type="checkbox" value="0"><span>D</span></label>
+              </div>
+              <p class="pista">Sin días marcados suena una sola vez.</p>
+            </fieldset>
+
+            <div class="campo">
+              <label for="alarma-sonido">Tono</label>
+              <div class="fila-sonido">
+                <select id="alarma-sonido">
+                  <option value="clasico">Clásico</option>
+                  <option value="digital">Digital</option>
+                  <option value="suave">Suave</option>
+                </select>
+                <button type="button" class="btn btn-ghost" id="btn-probar">Probar</button>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="volumen">Volumen · <output id="volumen-out" for="volumen">70%</output></label>
+              <input type="range" id="volumen" min="0" max="1" step="0.05" value="0.7">
+            </div>
+
+            <div class="acciones-formulario">
+              <button type="submit" class="btn btn-primario" id="btn-guardar">Añadir alarma</button>
+              <button type="button" class="btn btn-ghost" id="btn-cancelar" hidden>Cancelar</button>
+            </div>
+          </form>
+
+          <div class="card tarjeta-lista">
+            <div class="cabecera-lista">
+              <h2>Programadas</h2>
+              <span class="chip-numero" id="contador-alarmas">0</span>
+            </div>
+            <ul class="lista-alarmas" id="lista-alarmas"></ul>
+            <p class="vacio" id="alarmas-vacio">No tienes alarmas todavía. Crea la primera en el formulario.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Panel: Cronómetro ===== -->
+      <section class="panel" id="panel-cronometro" role="tabpanel" aria-labelledby="tab-cronometro" hidden>
+        <div class="card tarjeta-centrada">
+          <p class="sobretitulo">Cronómetro</p>
+          <div class="display-grande" id="crono-display">00:00.00</div>
+          <div class="acciones">
+            <button class="btn btn-primario" id="crono-iniciar">Iniciar</button>
+            <button class="btn btn-ghost" id="crono-vuelta" disabled>Vuelta</button>
+            <button class="btn btn-ghost" id="crono-reiniciar" disabled>Reiniciar</button>
+          </div>
+          <ol class="vueltas" id="crono-vueltas"></ol>
+        </div>
+      </section>
+
+      <!-- ===== Panel: Temporizador ===== -->
+      <section class="panel" id="panel-temporizador" role="tabpanel" aria-labelledby="tab-temporizador" hidden>
+        <div class="card tarjeta-centrada">
+          <p class="sobretitulo">Temporizador</p>
+          <div class="display-grande" id="timer-display">25:00</div>
+          <div class="barra-progreso" role="progressbar" aria-label="Progreso del temporizador" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <span id="timer-progreso" style="width:100%"></span>
+          </div>
+          <div class="presets" role="group" aria-label="Duraciones rápidas">
+            <button type="button" class="chip" data-min="1">1 min</button>
+            <button type="button" class="chip" data-min="5">5 min</button>
+            <button type="button" class="chip" data-min="10">10 min</button>
+            <button type="button" class="chip" data-min="25">25 min</button>
+            <button type="button" class="chip" data-min="45">45 min</button>
+          </div>
+          <form class="formulario-timer" id="timer-form">
+            <label>Minutos <input type="number" id="timer-min" min="0" max="599" value="25"></label>
+            <label>Segundos <input type="number" id="timer-seg" min="0" max="59" value="0"></label>
+            <button type="submit" class="btn btn-ghost">Cargar</button>
+          </form>
+          <div class="acciones">
+            <button class="btn btn-primario" id="timer-iniciar">Iniciar</button>
+            <button class="btn btn-ghost" id="timer-reiniciar" disabled>Reiniciar</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="pie">Reloj.js — HTML, CSS y JavaScript puros · los datos se guardan solo en tu navegador</footer>
+  </div>
+
+  <!-- ===== Aviso de alarma / temporizador ===== -->
+  <dialog class="alerta" id="alerta" aria-labelledby="alerta-titulo">
+    <div class="alerta-icono" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+      </svg>
+    </div>
+    <p class="sobretitulo" id="alerta-subtitulo">Sonando</p>
+    <h2 id="alerta-titulo">Alarma</h2>
+    <div class="alerta-acciones">
+      <button class="btn btn-ghost" id="alerta-posponer">Posponer 5 min</button>
+      <button class="btn btn-primario" id="alerta-detener">Detener</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
