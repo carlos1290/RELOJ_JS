@@ -155,7 +155,11 @@
       <section class="panel" id="panel-cronometro" role="tabpanel" aria-labelledby="tab-cronometro" hidden>
         <div class="card tarjeta-centrada">
           <p class="sobretitulo">Cronómetro</p>
-          <div class="display-grande" id="crono-display">00:00.00</div>
+          <div class="estado-fila">
+            <div class="display-grande" id="crono-display">00:00.00</div>
+            <span class="estado-pill listo" id="crono-estado">Listo</span>
+          </div>
+          <p class="meta-estado" id="crono-meta"></p>
           <div class="acciones">
             <button class="btn btn-primario" id="crono-iniciar">Iniciar</button>
             <button class="btn btn-ghost" id="crono-vuelta" disabled>Vuelta</button>
@@ -169,7 +173,11 @@
       <section class="panel" id="panel-temporizador" role="tabpanel" aria-labelledby="tab-temporizador" hidden>
         <div class="card tarjeta-centrada">
           <p class="sobretitulo">Temporizador</p>
-          <div class="display-grande" id="timer-display">25:00</div>
+          <div class="estado-fila">
+            <div class="display-grande" id="timer-display">25:00</div>
+            <span class="estado-pill listo" id="timer-estado">Listo</span>
+          </div>
+          <p class="meta-estado" id="timer-meta">Duración: 25 min</p>
           <div class="barra-progreso" role="progressbar" aria-label="Progreso del temporizador" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
             <span id="timer-progreso" style="width:100%"></span>
           </div>
@@ -194,7 +202,69 @@
 
     </main>
 
-    <footer class="pie">Reloj.js — HTML, CSS y JavaScript puros · los datos se guardan solo en tu navegador</footer>
+    <footer class="footer">
+      <div class="footer-interno">
+        <div class="footer-col footer-marca">
+          <div class="brand">
+            <span class="brand-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2"/></svg>
+            </span>
+            <span class="brand-name">Reloj<span class="brand-acento">.js</span></span>
+            <span class="badge-version">v1.1</span>
+          </div>
+          <p class="footer-descripcion">Reloj con alarmas, cronómetro y temporizador. HTML, CSS y JavaScript puros, sin dependencias. Tus datos se guardan solo en tu navegador.</p>
+          <div class="footer-links">
+            <a class="footer-link" href="https://github.com/carlos1290/RELOJ_JS" target="_blank" rel="noopener">Código fuente <span aria-hidden="true">↗</span></a>
+            <a class="footer-link" href="https://carlos1290.github.io/RELOJ_JS/" target="_blank" rel="noopener">GitHub Pages <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+
+        <nav class="footer-col" aria-label="Secciones de la aplicación">
+          <p class="footer-titulo">Secciones</p>
+          <div class="footer-tabs">
+            <button type="button" class="enlace-tab" data-tab="reloj">Reloj</button>
+            <button type="button" class="enlace-tab" data-tab="alarmas">Alarmas</button>
+            <button type="button" class="enlace-tab" data-tab="cronometro">Cronómetro</button>
+            <button type="button" class="enlace-tab" data-tab="temporizador">Temporizador</button>
+          </div>
+        </nav>
+
+        <div class="footer-col" aria-label="Preferencias rápidas">
+          <p class="footer-titulo">Preferencias</p>
+          <div class="pref-fila">
+            <span class="pref-etiqueta">Texto</span>
+            <div class="controles-tamano">
+              <button type="button" class="btn-mini" id="btn-tamano-menos" aria-label="Reducir tamaño del texto" title="Reducir texto (−)">A−</button>
+              <span id="tamano-valor">100%</span>
+              <button type="button" class="btn-mini" id="btn-tamano-mas" aria-label="Aumentar tamaño del texto" title="Aumentar texto (+)">A+</button>
+              <button type="button" class="btn-mini" id="btn-tamano-reset" aria-label="Restablecer tamaño del texto" title="Restablecer (0)">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="pref-fila">
+            <span class="pref-etiqueta">Tema</span>
+            <div class="segmento" role="group" aria-label="Tema de la aplicación">
+              <button type="button" class="seg-btn" id="tema-oscuro">Oscuro</button>
+              <button type="button" class="seg-btn" id="tema-claro">Claro</button>
+            </div>
+          </div>
+          <div class="pref-fila">
+            <span class="pref-etiqueta">Hora</span>
+            <div class="segmento" role="group" aria-label="Formato de hora">
+              <button type="button" class="seg-btn" id="formato-24">24 h</button>
+              <button type="button" class="seg-btn" id="formato-12">12 h</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-base">
+        <span>© <span id="footer-ano">2026</span> Reloj.js</span>
+        <span class="footer-estado"><span class="punto" aria-hidden="true"></span> Publicado en GitHub Pages</span>
+        <span class="footer-atajos">Atajos: <kbd>1</kbd>–<kbd>4</kbd> secciones · <kbd>T</kbd> tema · <kbd>+</kbd>/<kbd>−</kbd> texto · <kbd>0</kbd> restablecer · <kbd>Esc</kbd> detener</span>
+      </div>
+    </footer>
   </div>
 
   <!-- ===== Aviso de alarma / temporizador ===== -->

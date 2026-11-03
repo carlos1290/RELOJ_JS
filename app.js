@@ -39,7 +39,7 @@ function saveJSON(clave, valor) {
    Preferencias
    ============================================================ */
 const prefs = Object.assign(
-  { tema: 'dark', formato12: false, volumen: 0.7, pestaña: 'reloj' },
+  { tema: 'dark', formato12: false, volumen: 0.7, escala: 1, pestaña: 'reloj' },
   loadJSON(STORAGE.prefs, {})
 );
 
@@ -294,6 +294,7 @@ function dispararAlarma(alarma) {
       guardarAlarmas();
       renderAlarmas();
       actualizarProxima();
+      mostrarToast(`Alarma pospuesta hasta las ${formatoHoraDeReloj(t)}`);
     },
     onDetener: () => {
       alarma.snoozeHasta = null;
@@ -463,9 +464,28 @@ function actualizarProxima() {
   }
   const hora = mostrarHora(mejorAlarma.hora);
   const falta = mejorFecha.getTime() - ahora.getTime();
-  proximaEl.textContent = `Próxima: ${hora.texto}${hora.sufijo ? ' ' + hora.sufijo : ''} · ${
-    falta < 90_000 ? 'ahora' : 'en ' + humanizar(falta)
-  }`;
+  const etiqueta = mejorAlarma.snoozeHasta ? 'Pospuesta' : 'Próxima';
+  const cuenta = mejorAlarma.snoozeHasta ? `en ${fmtCuenta(falta)}` : falta < 90_000 ? 'ahora' : `en ${humanizar(falta)}`;
+  const texto = `${etiqueta}: ${hora.texto}${hora.sufijo ? ' ' + hora.sufijo : ''} · ${cuenta}`;
+  if (proximaEl.textContent !== texto) proximaEl.textContent = texto;
+}
+
+/* Cuenta atrás corta mm:ss para posposiciones */
+function fmtCuenta(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${pad(s % 60)}`;
+}
+
+/* Refresca badges de posposición en la lista (por segundo) */
+function actualizarPosposiciones() {
+  const ahora = Date.now();
+  $$('.pospuesta-tag').forEach((tag) => {
+    const alarma = alarmas.find((a) => a.id === tag.dataset.alarma);
+    if (!alarma || !alarma.snoozeHasta) return;
+    const falta = alarma.snoozeHasta - ahora;
+    const hora = mostrarHora(alarma.hora);
+    tag.innerHTML = `Pospuesta · ${hora.texto}${hora.sufijo ? ' ' + hora.sufijo : ''} · <strong>en ${fmtCuenta(falta)}</strong>`;
+  });
 }
 
 /* ============================================================
@@ -488,8 +508,14 @@ function renderAlarmas() {
 
   for (const alarma of ordenadas) {
     const hora = mostrarHora(alarma.hora);
+    const pospuesta = alarma.activa && alarma.snoozeHasta;
+    let badgeHTML = '';
+    if (pospuesta) {
+      const falta = alarma.snoozeHasta - Date.now();
+      badgeHTML = `<span class="pospuesta-tag" data-alarma="${alarma.id}">Pospuesta · ${hora.texto}${hora.sufijo ? ' ' + hora.sufijo : ''} · <strong>en ${fmtCuenta(falta)}</strong></span>`;
+    }
     const li = document.createElement('li');
-    li.className = 'alarma' + (alarma.activa ? '' : ' is-off');
+    li.className = 'alarma' + (alarma.activa ? '' : ' is-off') + (pospuesta ? ' pospuesta' : '');
     li.dataset.id = alarma.id;
 
     li.innerHTML = `
@@ -501,6 +527,7 @@ function renderAlarmas() {
         <span class="alarma-hora">${hora.texto}${hora.sufijo ? `<span class="alarma-sufijo"> ${hora.sufijo}</span>` : ''}</span>
         <span class="alarma-nombre">${alarma.nombre ? escapeHTML(alarma.nombre) : '<em>Sin etiqueta</em>'}</span>
         <span class="alarma-dias">${etiquetaDias(alarma.dias)}</span>
+        ${badgeHTML}
       </div>
       <div class="alarma-acciones">
         <button class="icon-btn" data-accion="editar" aria-label="Editar alarma" title="Editar">${ICONO_EDITAR}</button>
@@ -639,30 +666,70 @@ inputVolumen.addEventListener('change', guardarPrefs);
 const btnTema = $('#btn-tema');
 
 function aplicarTema() {
-  document.documentElement.dataset.theme = prefs.tema;
-  $("meta[name='theme-color']").content = prefs.tema === 'dark' ? '#080b11' : '#edf0f7';
+  const oscuro = prefs.tema !== 'light';
+  document.documentElement.dataset.theme = oscuro ? 'dark' : 'light';
+  $("meta[name='theme-color']").content = oscuro ? '#080b11' : '#edf0f7';
+  sincronizarTema();
 }
 
-btnTema.addEventListener('click', () => {
-  prefs.tema = prefs.tema === 'dark' ? 'light' : 'dark';
-  aplicarTema();
+function setTema(tema) {
+  if (prefs.tema === tema) return;
+  prefs.tema = tema;
   guardarPrefs();
-});
+  aplicarTema();
+}
 
+btnTema.addEventListener('click', () => setTema(prefs.tema === 'dark' ? 'light' : 'dark'));
+
+const btnOscuroFooter = $('#tema-oscuro');
+const btnClaroFooter = $('#tema-claro');
+
+function sincronizarTema() {
+  const oscuro = prefs.tema !== 'light';
+  if (btnOscuroFooter && btnClaroFooter) {
+    btnOscuroFooter.classList.toggle('is-active', oscuro);
+    btnClaroFooter.classList.toggle('is-active', !oscuro);
+  }
+}
+
+btnOscuroFooter.addEventListener('click', () => setTema('dark'));
+btnClaroFooter.addEventListener('click', () => setTema('light'));
+
+/* ---------- Formato de hora 24 h / 12 h ---------- */
 const btnFormato = $('#btn-formato');
 
-function actualizarBotonFormato() {
-  btnFormato.textContent = 'Formato actual: ' + (prefs.formato12 ? '12 h · AM/PM' : '24 h');
+function formatoHoraDeReloj(d) {
+  const h = d.getHours();
+  if (!prefs.formato12) return `${pad(h)}:${pad(d.getMinutes())}`;
+  return `${h % 12 || 12}:${pad(d.getMinutes())} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
-btnFormato.addEventListener('click', () => {
-  prefs.formato12 = !prefs.formato12;
+function setFormato(valor12) {
+  prefs.formato12 = valor12;
   guardarPrefs();
-  actualizarBotonFormato();
+  sincronizarFormato();
   renderReloj(new Date());
   renderAlarmas();
   actualizarProxima();
-});
+}
+
+function alternarFormato() {
+  setFormato(!prefs.formato12);
+}
+
+function sincronizarFormato() {
+  btnFormato.textContent = `Formato: ${prefs.formato12 ? '12 h · AM/PM' : '24 h'}`;
+  const f24 = $('#formato-24');
+  const f12 = $('#formato-12');
+  if (f24 && f12) {
+    f24.classList.toggle('is-active', !prefs.formato12);
+    f12.classList.toggle('is-active', prefs.formato12);
+  }
+}
+
+btnFormato.addEventListener('click', alternarFormato);
+$('#formato-24').addEventListener('click', () => setFormato(false));
+$('#formato-12').addEventListener('click', () => setFormato(true));
 
 /* ============================================================
    Pestañas
@@ -680,6 +747,7 @@ function activarTab(tab, guardar = true) {
     const panel = $(`#panel-${t.dataset.tab}`);
     if (panel) panel.hidden = t !== tab;
   });
+  $$('.enlace-tab').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === tab.dataset.tab));
   if (guardar) {
     prefs.pestaña = tab.dataset.tab;
     guardarPrefs();
@@ -700,6 +768,14 @@ tabsEl.forEach((tab) => {
       activarTab(destino);
       destino.focus();
     }
+  });
+});
+
+/* Pestañas del footer */
+$$('.enlace-tab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const destino = tabsEl.find((t) => t.dataset.tab === btn.dataset.tab);
+    if (destino) activarTab(destino);
   });
 });
 
@@ -743,6 +819,25 @@ function actualizarBotonesCrono() {
   btnCronoIniciar.textContent = crono.corriendo ? 'Pausar' : hayTiempo ? 'Reanudar' : 'Iniciar';
   btnCronoVuelta.disabled = !crono.corriendo;
   btnCronoReiniciar.disabled = !crono.corriendo && !hayTiempo;
+  renderEstadoCrono();
+}
+
+/* Píldora de estado + meta del cronómetro */
+function renderEstadoCrono() {
+  const pill = $('#crono-estado');
+  const meta = $('#crono-meta');
+  if (!pill) return;
+  let clase, texto;
+  if (crono.corriendo) { clase = 'marcha'; texto = 'En marcha'; }
+  else if (crono.actual() > 0) { clase = 'pausa'; texto = 'En pausa'; }
+  else { clase = 'listo'; texto = 'Listo'; }
+  pill.className = `estado-pill ${clase}`;
+  pill.textContent = texto;
+  if (meta) {
+    const n = crono.vueltas.length;
+    meta.textContent = clase === 'listo' ? '' : n ? `${n} ${n === 1 ? 'vuelta' : 'vueltas'}` : 'Sin vueltas';
+  }
+  $('#crono-display').classList.toggle('pausado', clase === 'pausa');
 }
 
 btnCronoIniciar.addEventListener('click', () => {
@@ -763,6 +858,7 @@ btnCronoVuelta.addEventListener('click', () => {
   const total = crono.actual();
   const previo = crono.vueltas.length ? crono.vueltas[crono.vueltas.length - 1].total : 0;
   crono.vueltas.push({ total, parcial: total - previo });
+  renderEstadoCrono();
   cronoVueltas.innerHTML = crono.vueltas
     .map(
       (v, i) => `<li>
@@ -827,6 +923,38 @@ function renderBotonesTimer() {
   btnTimerIniciar.textContent = timer.corriendo ? 'Pausar' : timer.restante !== timer.total && timer.restante > 0 ? 'Reanudar' : 'Iniciar';
   btnTimerReiniciar.disabled = !armed;
   btnTimerIniciar.disabled = timer.restante <= 0 && !timer.corriendo;
+  renderEstadoTimer();
+}
+
+/* Píldora de estado + meta del temporizador */
+function fmtDuracion(ms) {
+  const min = Math.max(1, Math.round(ms / 60_000));
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h + (m ? ` h ${m} min` : ' h');
+}
+
+function renderEstadoTimer() {
+  const pill = $('#timer-estado');
+  const meta = $('#timer-meta');
+  if (!pill) return;
+  let clase, texto;
+  if (timer.corriendo) { clase = 'marcha'; texto = 'En marcha'; }
+  else if (timer.restante === 0) { clase = 'terminado'; texto = 'Terminado'; }
+  else if (timer.restante !== timer.total) { clase = 'pausa'; texto = 'En pausa'; }
+  else { clase = 'listo'; texto = 'Listo'; }
+  pill.className = `estado-pill ${clase}`;
+  pill.textContent = texto;
+  if (meta) {
+    if (timer.corriendo) meta.textContent = `Termina a las ${formatoHoraDeReloj(new Date(timer.finTs))}`;
+    else if (clase === 'pausa') meta.textContent = `Pausado en ${fmtTimer(timer.restante)}`;
+    else if (clase === 'terminado') meta.textContent = `Terminó a las ${formatoHoraDeReloj(new Date(timer.finTs))}`;
+    else meta.textContent = `Duración: ${fmtDuracion(timer.total)}`;
+    meta.className = 'meta-estado' + (clase === 'terminado' ? ' alertado' : '');
+  }
+  $('#timer-display').classList.toggle('pausado', clase === 'pausa' || clase === 'terminado');
+  $('.barra-progreso').classList.toggle('pausado', clase === 'pausa' || clase === 'terminado');
 }
 
 function cicloTimer() {
@@ -920,14 +1048,93 @@ function mostrarToast(mensaje) {
 }
 
 /* ============================================================
+   Escala tipográfica + atajos de teclado año footer
+   ============================================================ */
+const PASOS_ESCALA = [0.85, 0.925, 1, 1.075, 1.15, 1.25];
+
+function indiceEscalaValido() {
+  const i = PASOS_ESCALA.indexOf(prefs.escala);
+  if (i !== -1) return i;
+  // valor desconocido (persistencia antigua): el paso más cercano
+  let mejor = 2;
+  PASOS_ESCALA.forEach((p, i) => {
+    if (Math.abs(p - Number(prefs.escala)) < Math.abs(PASOS_ESCALA[mejor] - Number(prefs.escala))) mejor = i;
+  });
+  return mejor;
+}
+
+function setEscala(indice) {
+  const i = clamp(indice, 0, PASOS_ESCALA.length - 1);
+  prefs.escala = PASOS_ESCALA[i];
+  guardarPrefs();
+  aplicarEscala();
+}
+
+function cambiarEscala(delta) {
+  setEscala(indiceEscalaValido() + delta);
+}
+
+function aplicarEscala() {
+  document.documentElement.style.setProperty('--escala', String(prefs.escala));
+  const valor = $('#tamano-valor');
+  if (valor) valor.textContent = `${Math.round(prefs.escala * 100)}%`;
+  const menos = $('#btn-tamano-menos');
+  const mas = $('#btn-tamano-mas');
+  if (menos) menos.disabled = prefs.escala <= PASOS_ESCALA[0];
+  if (mas) mas.disabled = prefs.escala >= PASOS_ESCALA[PASOS_ESCALA.length - 1];
+}
+
+$('#btn-tamano-menos').addEventListener('click', () => cambiarEscala(-1));
+$('#btn-tamano-mas').addEventListener('click', () => cambiarEscala(1));
+$('#btn-tamano-reset').addEventListener('click', () => setEscala(PASOS_ESCALA.indexOf(1)));
+
+/* Atajos globales (ignora campos de texto y modales abiertos) */
+document.addEventListener('keydown', (e) => {
+  if (modal.open) return;
+  const objetivo = e.target;
+  if (objetivo instanceof HTMLElement && (objetivo.matches('input, select, textarea') || objetivo.isContentEditable)) return;
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+  const n = Number(e.key);
+  if (n >= 1 && n <= 4 && !Number.isNaN(n)) {
+    e.preventDefault();
+    activarTab(tabsEl[n - 1]);
+    tabsEl[n - 1].focus();
+    return;
+  }
+
+  switch (e.key.toLowerCase()) {
+    case 't':
+      setTema(prefs.tema === 'dark' ? 'light' : 'dark');
+      break;
+    case '+':
+    case '=':
+      e.preventDefault();
+      cambiarEscala(1);
+      break;
+    case '-':
+      e.preventDefault();
+      cambiarEscala(-1);
+      break;
+    case '0':
+      setEscala(PASOS_ESCALA.indexOf(1));
+      break;
+    default:
+      break;
+  }
+});
+
+/* ============================================================
    Arranque
    ============================================================ */
 function iniciar() {
+  $('#footer-ano').textContent = String(new Date().getFullYear());
+  aplicarEscala();
   aplicarTema();
   construirAnalogico();
   inputVolumen.value = String(prefs.volumen);
   salidaVolumen.textContent = `${Math.round(prefs.volumen * 100)}%`;
-  actualizarBotonFormato();
+  sincronizarFormato();
   actualizarBotonesCrono();
   renderTimer();
   renderBotonesTimer();
@@ -952,6 +1159,16 @@ function iniciar() {
       ultimaActividad = Date.now();
       comprobarAlarmas(ahora);
       actualizarProxima();
+    }
+
+    // Refresco por segundo de pospciones y su cuenta atrás
+    const segundo = ahora.getSeconds();
+    if (segundo !== iniciar._segundo) {
+      iniciar._segundo = segundo;
+      if (alarmas.some((a) => a.snoozeHasta)) {
+        actualizarPosposiciones();
+        actualizarProxima();
+      }
     }
   }, 250);
 }
